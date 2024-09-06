@@ -9,6 +9,7 @@ import {dirname} from 'path'
 import path from 'path'
 import { fileURLToPath } from 'url';
 
+
 //Mensaje de bienvenida para verificar que ejecuta correctamente la API de node
 
 console.log("API Node en ejecucion")
@@ -27,7 +28,8 @@ app.use(cors({
         origin: '*',
         preflightContinue: false,
         methods: 'GET, HEAD, PUT,PATCH,POST,DELETE',
-        optionsSuccessStatus: 24
+        optionsSuccessStatus: 24,
+        preflightContinue: false
 }));
 
 //Decodificar los datos desde los formularios js
