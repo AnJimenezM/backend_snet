@@ -58,8 +58,8 @@ export const register = async (req, res) => {
     await user_to_save.save();
 
     // Devolver el usuario registrado
-    return res.status(200).json({
-      status: "success",
+    return res.status(201).json({
+      status: "created",
       message: "Registro de usuario exitoso",
       user_to_save
     });
