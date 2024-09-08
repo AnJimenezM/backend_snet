@@ -28,8 +28,9 @@ app.use(cors({
         origin: '*',
         preflightContinue: false,
         methods: 'GET, HEAD, PUT,PATCH,POST,DELETE',
-        optionsSuccessStatus: 24,
-        preflightContinue: false
+        preflightContinue: false,
+        optionsSuccessStatus: 204
+        
 }));
 
 //Decodificar los datos desde los formularios js
