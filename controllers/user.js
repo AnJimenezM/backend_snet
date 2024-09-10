@@ -169,7 +169,7 @@ export const profile = async (req, res) => {
     return res.status(200).json({
       status: "success",
       user: userProfile,
-      followInfot
+      followInfo
     });
 
   } catch (error) {
