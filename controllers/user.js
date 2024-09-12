@@ -188,7 +188,7 @@ export const listUsers = async (req, res) => {
     // Controlar la página actual
     let page = req.params.page ? parseInt(req.params.page, 10) : 1;
     // Configurar los ítems por página
-    let itemsPerPage = req.query.limit ? parseInt(req.query.limit, 10) : 3;
+    let itemsPerPage = req.query.limit ? parseInt(req.query.limit, 10) : 10;
 
     // Realizar consulta paginada
     const options = {
@@ -283,7 +283,7 @@ export const updateUser = async (req, res) => {
 
     // Devolver la respuesta exitosa
     return res.status(200).send({
-      status: "sucess",
+      status: "success",
       message: "Usuario actualizado correctamente",
       user: userUpdated
     });
