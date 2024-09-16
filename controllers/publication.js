@@ -1,5 +1,15 @@
 import Publication from "../models/publications.js"
+import fs from "fs";
+import path from "path";
 import { followUserIds } from "../services/followServices.js"
+
+
+// Método de prueba
+export const testPublication = (req, res) => {
+  return res.status(200).send({
+    message: "Mensaje enviado desde el controlador publication.js"
+  });
+}
 
 // Método para hacer una publicación
 export const savePublication = async (req, res) => {
@@ -33,8 +43,8 @@ export const savePublication = async (req, res) => {
       });
     }
 
-    // Devolver respuesta exitosa
-    return res.status(200).json({
+    // Devolver respuesta exitosa 
+    return res.status(200).send({
       status: "success",
       message: "¡Publicación creada con éxito!",
       publicationStored
@@ -69,7 +79,7 @@ export const showPublication = async (req, res) => {
     }
 
     // Devolver respuesta exitosa 
-    return res.status(200).json({
+    return res.status(200).send({
       status: "success",
       message: "Publicación encontrada",
       publication: publicationStored
@@ -102,7 +112,7 @@ export const deletePublication = async (req, res) => {
     }
 
     // Devolver respuesta exitosa
-    return res.status(200).json({
+    return res.status(200).send({
       status: "success",
       message: "Publicación eliminada con éxito",
       publication: publicationDeleted
@@ -138,7 +148,7 @@ export const publicationsUser = async (req, res) => {
         path: 'user_id',
         select: '-password -role -__v -email'
       },
-      lean: true  // Hace que la consulta retorne objetos JS puros, en vez de documentos Mongoose
+      lean: true
     };
 
     // Buscar las publicaciones del usuario
@@ -152,14 +162,14 @@ export const publicationsUser = async (req, res) => {
     }
 
     // Devolver respuesta exitosa
-    return res.status(200).json({
+    return res.status(200).send({
       status: "success",
       message: "Publicaciones del usuario: ",
       publications: publications.docs,
       total: publications.totalDocs,
       pages: publications.totalPages,
       page: publications.page,
-      limit_items_ppage: publications.limit
+      limit_items_page: publications.limit
     });
 
   } catch (error) {
@@ -186,7 +196,6 @@ export const uploadMedia = async (req, res) => {
       });
     }
 
-    // Verificar si se ha subido un archivo
     if (!req.file) {
       return res.status(400).send({
         status: "error",
@@ -194,48 +203,40 @@ export const uploadMedia = async (req, res) => {
       });
     }
 
-    // Comprobamos que existe el archivo en el body
-    if (!req.file) {
-      return res.status(400).send({
-        status: "error",
-        message: "La petición no incluye la imagen"
-      });
-    }
+     // Obtener la URL de Cloudinary
+     const mediaUrl = req.file.path;
 
-    // Obtener la URL de Cloudinary
-    const mediaUrl = req.file.path;
-
-    // Si todo es correcto, actualizar la publicación con la URL de la imagen en Cloudinary
-    const publicationUpdated = await Publication.findByIdAndUpdate(
-      publicationId,
-      { file: mediaUrl },
-      { new: true }
-    );
-
-    // Verificar si la actualización fue exitosa
-    if (!publicationUpdated) {
-      return res.status(500).send({
-        status: "error",
-        message: "Error en la subida del archivo"
-      });
-    }
-
-    // Devolver respuesta exitosa
-    return res.status(200).json({
-      status: "success",
-      message: "Archivo subido con éxito",
-      publication: publicationUpdated,
-      file: mediaUrl
-    });
-
-  } catch (error) {
-    console.error("Error al subir el archivo a la publicación", error);
-    return res.status(500).send({
-      status: "error",
-      message: "Error al subir el archivo a la publicación"
-    });
-  }
-}
+     // Si todo es correcto, actualizar la publicación con la URL de la imagen en Cloudinary
+     const publicationUpdated = await Publication.findByIdAndUpdate(
+       publicationId,
+       { file: mediaUrl },
+       { new: true }
+     );
+ 
+     // Verificar si la actualización fue exitosa
+     if (!publicationUpdated) {
+       return res.status(500).send({
+         status: "error",
+         message: "Error en la subida del archivo"
+       });
+     }
+ 
+     // Devolver respuesta exitosa
+     return res.status(200).json({
+       status: "success",
+       message: "Archivo subido con éxito",
+       publication: publicationUpdated,
+       file: mediaUrl
+     });
+ 
+   } catch (error) {
+     console.error("Error al subir el archivo a la publicación", error);
+     return res.status(500).send({
+       status: "error",
+       message: "Error al subir el archivo a la publicación"
+     });
+   }
+ }
 
 // Método para mostrar el archivo subido a la publicación
 export const showMedia = async (req, res) => {
@@ -268,7 +269,6 @@ export const showMedia = async (req, res) => {
     });
   }
 }
-
 // Método para listar todas las publicaciones de los usuarios que yo sigo (Feed)
 export const feed = async (req, res) => {
   try {
@@ -324,7 +324,7 @@ export const feed = async (req, res) => {
     }
 
     // Devolver respuesta exitosa
-    return res.status(200).json({
+    return res.status(200).send({
       status: "success",
       message: "Feed de Publicaciones",
       publications: result.docs,
@@ -341,3 +341,4 @@ export const feed = async (req, res) => {
     });
   }
 }
+
