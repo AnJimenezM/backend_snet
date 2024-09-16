@@ -3,9 +3,7 @@ import Follow from "../models/follows.js";
 import Publication from "../models/publications.js";
 import bcrypt from "bcrypt";
 import { createToken } from "../services/jwt.js";
-import fs from "fs";
-import path from "path";
-import {followThisUser} from '../services/followServices.js'
+import { followThisUser } from "../services/followServices.js"
 
 // Método de prueba de usuario
 export const testUser = (req, res) => {
@@ -146,25 +144,29 @@ export const profile = async (req, res) => {
   try {
     // Obtener el ID del usuario desde los parámetros de la URL
     const userId = req.params.id;
-  //verificar si el ID del usuario atenticaso esta disponible
-  if(!req.user || !req.user.userId){
-    return res.status(401).send({
-      status: "success",
-      message: "Usuario no autenticado"
-    });
-  }
+
+    // Verificar si el ID del usuario autenticado está disponible
+    if(!req.user || !req.user.userId){
+      return res.status(401).send({
+        status: "success",
+        message: "Usuario no autenticado"
+      });
+    }
+
     // Buscar al usuario en la BD y excluimos los datos que no queremos mostrar
     const userProfile = await User.findById(userId).select('-password -role -email -__v');
 
-    // Verficiar si el usuario no existe
+    // Verificar si el usuario no existe
     if(!userProfile){
       return res.status(404).send({
         status: "success",
         message: "Usuario no encontrado"
       });
     }
-    //Informacion del seguimiento
-    const followInfo = await followThisUser(req.user.userId, userId)
+
+    // Información del seguimiento
+    const followInfo = await followThisUser(req.user.userId, userId);
+
     // Devolver la información del perfil del usuario
     return res.status(200).json({
       status: "success",
@@ -300,53 +302,24 @@ export const updateUser = async (req, res) => {
 // Método para subir AVATAR (imagen de perfil) y actualizar el campo image del User
 export const uploadAvatar = async (req, res) => {
   try {
-    // Obtener el archivo de la imagen y comprobar si existe
+    // Verificar si se ha subido un archivo
     if(!req.file){
-      return res.status(404).send({
+      return res.status(400).send({
         status: "error",
         message: "Error la petición no incluye la imagen"
       });
     }
 
-    // Obtener el nombre del archivo
-    let image = req.file.originalname;
-
-    // Obtener la extensión del archivo
-    const imageSplit = image.split(".");
-    const extension = imageSplit[imageSplit.length -1];
-
-    // Validar la extensión
-    if(!["png", "jpg", "jpeg", "gif"]){
-      // Borrar archivo subido
-      const filePath = req.file.path;
-      fs.unlinkSync(filePath);
-
-      return res.status(404).send({
-        status: "error",
-        message: "Extensión del archivo inválida. Solo se permite: png, jpg, jpeg, gif"
-      });
-    }
-    // Comprobar tamaño del archivo (pj: máximo 1MB)
-    const fileSize = req.file.size;
-    const maxFileSize = 1 * 1024 * 1024; // 1 MB
-
-    if (fileSize > maxFileSize) {
-      const filePath = req.file.path;
-      fs.unlinkSync(filePath);
-
-      return res.status(400).send({
-        status: "error",
-        message: "El tamaño del archivo excede el límite (máx 1 MB)"
-      });
-    }
+    // Obtener la URL del archivo subido a Cloudinary
+    const avatarUrl = req.file.path; // Esta propiedad contiene la URL de Cloudinary
 
     // Guardar la imagen en la BD
-    const userUpdated = await User.findOneAndUpdate(
-      {_id: req.user.userId},
-      { image: req.file.filename },
-      { new: true}
+    const userUpdated = await User.findByIdAndUpdate(
+      req.user.userId,
+      { image: avatarUrl },
+      { new: true }
     );
-      console.log("userUpdated", userUpdated.name);
+
     // verificar si la actualización fue exitosa
     if (!userUpdated) {
       return res.status(500).send({
@@ -355,11 +328,11 @@ export const uploadAvatar = async (req, res) => {
       });
     }
 
-    // Devolver respuesta exitosa 
+    // Devolver respuesta exitosa
     return res.status(200).json({
       status: "success",
       user: userUpdated,
-      file: req.file
+      file: avatarUrl
     });
 
   } catch (error) {
@@ -371,80 +344,79 @@ export const uploadAvatar = async (req, res) => {
   }
 }
 
-//Metodo para mostrar el avatar(iamgen de perfil)
-export const avatar = async (req, res) =>{
+// Método para mostrar el AVATAR (imagen de perfil)
+export const avatar = async (req, res) => {
   try {
-    //Obtener el parametro del archivo desde la url
-    const file = req.params.file;
-    // Configurando el path real de la iamgen que queremos mostrar
-    const filePath = "./uploads/avatars/" + file;
-    
-    //Comprobar que si existe el filePath
-    fs.stat(filePath, (error, exists) =>{
-      if(!filePath){
-        return res.status(404).send({
-          status: "error",
-          message: "No exite la imagen"
-        });
-      }
+    // Obtener el parámetro del archivo desde la url
+    const userId = req.params.file;
 
-      //Devuelve el file
-      return res.sendFile(path.resolve(filePath));
+    // Buscar al usuario en la base de datos para obtener la URL de Cloudinary
+    const user = await User.findById(userId).select('image');
+
+    // Verificar si el usuario existe y tiene una imagen
+    if (!user || !user.image) {
+      return res.status(404).send({
+        status: "error",
+        message: "No existe la imagen o el usuario"
+      });
+    }
+
+    // Devolver la URL de la imagen desde Cloudinary
+    return res.status(200).json({
+      status: "success",
+      imageUrl: user.image // URL de Cloudinary almacenada en la BD
     });
 
   } catch (error) {
-    console.log("Error al mostrar imagen", error)
+    console.log("Error al mostrar la imagen", error)
     return res.status(500).send({
       status: "error",
-      message: "Error al mostrar imagen"
+      message: "Error al mostrar la imagen"
     });
   }
 }
 
-
 // Método para mostrar contador de seguidores y publicaciones
 export const counters = async (req, res) => {
   try {
-    
-    //Obtner id del usuario autenticado
+    // Obtener el Id del usuario autenticado (token)
     let userId = req.user.userId;
 
+    // Si llega el id a través de los parámetros en la URL tiene prioridad
     if(req.params.id){
       userId = req.params.id;
     }
 
-    //Obtener el nombre y apellido del usuario
-    const user = await User.findById(userId,{name: 1, last_name:1});
+    // Obtener el nombre y apellido del usuario
+    const user = await User.findById(userId, { name: 1, last_name: 1});
 
-    //verificar el usuario
+    // Vericar el user
     if(!user){
-      return res.status(200).json({
-        status: "success"
-      })
+      return res.status(404).send({
+        status: "error",
+        message: "Usuario no encontrado"
+      });
     }
 
-    //Contador de usuarios que yo sigo (o que sigue el usuario)
+    // Contador de usuarios que yo sigo (o que sigue el usuario autenticado)
+    const followingCount = await Follow.countDocuments({ "following_user": userId });
 
-    const followingCount = await Follow.countDocuments({'following_user': userId});
+    // Contador de usuarios que me siguen a mi (que siguen al usuario autenticado)
+    const followedCount = await Follow.countDocuments({ "followed_user": userId });
 
-    //Contador de usuarios que me siguen
-    const followedCount = await Follow.countDocuments({"followed_user": userId});
+    // Contador de publicaciones del usuario autenticado
+    const publicationsCount = await Publication.countDocuments({ "user_id": userId });
 
-    const publicationsCount = await Publication.countDocuments({"user_id": userId});
-
+    // Devolver los contadores
     return res.status(200).json({
       status: "success",
       userId,
       name: user.name,
       last_name: user.last_name,
-      followedCount: followedCount,
       followingCount: followingCount,
+      followedCount: followedCount,
       publicationsCount: publicationsCount
-
-    })
-
-
-   
+    });
 
   } catch (error) {
     console.log("Error en los contadores", error)
